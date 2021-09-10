@@ -1,0 +1,573 @@
+---
+title: "Dimensionality Reduction"
+author: "Brian Michira"
+date: "9/10/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+# 1.PROBLEM DEFINITION
+
+You are a Data analyst at Carrefour Kenya and are currently undertaking a project that will inform the marketing department on the most relevant marketing strategies that will result in the highest no. of sales (total price including tax). Your project has been divided into four parts where you'll explore a recent marketing dataset by performing various unsupervised learning techniques and later providing recommendations based on your insights.
+
+# 2.Loading and previewing the dataset
+
+```{r}
+# load our dataset
+dataset <- read.csv("http://bit.ly/CarreFourDataset")
+```
+
+
+```{r}
+# preview the top of our dataset
+head(dataset)
+```
+
+
+```{r}
+# preview the bottom of our dataset
+tail(dataset)
+```
+
+
+```{r}
+# view the number of columns and rows
+dim(dataset)
+```
+ Our dataset has 1000 rows and 16 columns.
+
+```{r}
+# checking the info
+str(dataset)
+```
+# 3.Cleaning the dataset
+```{r}
+# checking for missing values
+sum(is.na(dataset))
+```
+There is no missing values.
+
+```{r}
+# find any duplicated rows in our dataset
+duplicated_rows <- dataset[duplicated(dataset),]
+duplicated_rows
+```
+There appears to be no duplicated entries in our data.
+
+# Handling Outliers
+
+```{r}
+# checking for outliers on the Unit.price  column
+boxplot(dataset$Unit.price)
+
+```
+There is no presence of outliers in the Unit price column.
+
+
+```{r}
+# checking for outliers on the Quantity column
+boxplot(dataset$Quantity)
+
+```
+
+There appears to be no outliers in the quantity column.
+
+```{r}
+# checking for outliers on the Tax column
+boxplot(dataset$Tax)
+
+```
+The outliers in the Tax column are as a result of the products that are taxed highly.
+
+
+```{r}
+# checking for outliers on the cogs column
+boxplot(dataset$cogs)
+
+```
+The outliers in the cogs column are as a result of the high cost of goods sold.
+
+
+```{r}
+# checking for outliers on the gross.margin.percentage column
+boxplot(dataset$gross.margin.percentage)
+
+```
+
+There appears to be no outliers in the gross.margin.percentage column.
+
+```{r}
+# checking for outliers on the gross.income column
+boxplot(dataset$gross.income)
+
+```
+The outliers on the gross income column are as a result of the high gross income.
+
+```{r}
+# checking for outliers on the Rating column
+boxplot(dataset$Rating)
+
+```
+There is no presence of outliers in the Rating Column.
+
+```{r}
+# checking for outliers on the Total column
+boxplot(dataset$Total)
+
+```
+The outliers in the total Column are as a result of the high total amount.
+
+# 4.Exploratory Data Analysis
+## Univariate Analysis
+### 1.Measures of Central Tendency & Measures of Dispersion
+
+```{r}
+summary(dataset)
+```
+```{r}
+### Identify numeric cols
+num <- unlist(lapply(dataset, is.numeric)) 
+col<- colnames(dataset[num])
+col
+```
+```{r}
+num <-dataset[col]
+head(num)
+```
+
+```{r}
+#measure of central tedency and measure of dispersion
+library(moments)
+univarite = function(x)list(
+  Mean=mean(x, na.rm=TRUE),
+  Median=median(x, na.rm=TRUE),
+  Skewness=skewness(x, na.rm=TRUE),
+  Kurtosis=kurtosis(x, na.rm=TRUE),
+  Variance=var(x, na.rm=TRUE),
+  Std.Dev=sd(x, na.rm=TRUE)
+)
+#calling the function
+sapply(dataset[,c(col)], univarite)
+```
+
+### Univariate Graphical
+#### BarGraph
+```{r}
+head(dataset)
+```
+
+
+```{r} 
+library(dplyr)
+plotdata <- dataset %>%
+  count(Payment) %>%
+  mutate(pct = n / sum(n),
+         pctlabel = paste0(round(pct*100), "%"))
+library(scales)
+library(ggplot2)
+
+```
+
+```{r}
+# Bar chart of Customer Type
+plotdata <- dataset %>%
+  count(Customer.type) %>%
+  mutate(pct = n / sum(n),
+         pctlabel = paste0(round(pct*100), "%"))
+
+# plot the bars as percentages, 
+# in descending order with bar labels
+ggplot(plotdata, 
+       aes(x = reorder(Customer.type, -pct),
+           y = pct)) + 
+  geom_bar(stat = "identity", 
+           fill = "cyan", 
+           color = "black") +
+  geom_text(aes(label = pctlabel), 
+            vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Customer.type", 
+       y = "Percent", 
+       title  = "Distribution of Customer Type")
+```
+The customer type distribution was equal at 50% for the Member Customers and Normal Customers.
+
+```{r}
+# Bar chart of Product Line
+plotdata <- dataset %>%
+  count(Product.line) %>%
+  mutate(pct = n / sum(n),
+         pctlabel = paste0(round(pct*100), "%"))
+
+# plot the bars as percentages, 
+# in descending order with bar labels
+ggplot(plotdata, 
+       aes(x = reorder(Product.line, -pct),
+           y = pct)) + 
+  geom_bar(stat = "identity", 
+           fill = "orange", 
+           color = "black") +
+  geom_text(aes(label = pctlabel), 
+            vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Product.line", 
+       y = "Percent", 
+       title  = "Distribution of Product.line") +
+  coord_flip()
+```
+Fashion accessories had a higher distribution at 18% while Health and Beauty had a lower distribution at 15%
+
+```{r}
+# Bar chart of Gender Distribution
+plotdata <- dataset %>%
+  count(Gender) %>%
+  mutate(pct = n / sum(n),
+         pctlabel = paste0(round(pct*100), "%"))
+
+# plot the bars as percentages, 
+# in descending order with bar labels
+ggplot(plotdata, 
+       aes(x = reorder(Gender, -pct),
+           y = pct)) + 
+  geom_bar(stat = "identity", 
+           fill = "blue", 
+           color = "black") +
+  geom_text(aes(label = pctlabel), 
+            vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Gender", 
+       y = "Percent", 
+       title  = "Distribution of Gender Type")
+```
+From our bar chart there appears to be an equal distribution of Males and Females.
+
+```{r}
+# Bar chart of Payment Distribution
+plotdata <- dataset %>%
+  count(Payment) %>%
+  mutate(pct = n / sum(n),
+         pctlabel = paste0(round(pct*100), "%"))
+
+# plot the bars as percentages, 
+# in descending order with bar labels
+ggplot(plotdata, 
+       aes(x = reorder(Payment, -pct),
+           y = pct)) + 
+  geom_bar(stat = "identity", 
+           fill = "orange", 
+           color = "black") +
+  geom_text(aes(label = pctlabel), 
+            vjust = -0.25) +
+  scale_y_continuous(labels = percent) +
+  labs(x = "Payment", 
+       y = "Percent", 
+       title  = "Distribution of Payment Type")
+```
+From our barchart the most common payment type is Ewallet and Cash Payment type represented by 34% and the least mode of payment is Credit card represented by 31%.
+
+## Histogram
+
+```{r}
+# plot the histogram of Unit.price
+ggplot(dataset, aes(x = Unit.price)) +
+  geom_histogram(fill = "cyan", 
+                 color = "black",
+                 binwidth = 5) + 
+  labs(title="Distribution of Unit Price",
+       x = "Unit Price")
+```
+From our histogram we can see that the unit price of 75 had among the highest count.
+
+```{r}
+# plot the histogram of Quantity
+ggplot(dataset, aes(x = Quantity)) +
+  geom_histogram(fill = "red", 
+                 color = "black",
+                 binwidth = 1) + 
+  labs(title="Distribution of Quantity",
+       x = "Quantity")
+```
+From our histogram of Quantity distribution the quantity of 10 had the highest count.
+
+```{r}
+# plot the histogram of Tax
+ggplot(dataset, aes(x = Tax)) +
+  geom_histogram(fill = "orange", 
+                 color = "black",
+                 binwidth = 1) + 
+  labs(title="Distribution of Tax",
+       x = "Tax")
+```
+From our histogram tax rates was positively skewed.Showing that most of the values were greater than the mean.
+
+```{r}
+# plot the histogram of cogs
+ggplot(dataset, aes(x = cogs)) +
+  geom_histogram(fill = "blue", 
+                 color = "black",
+                 binwidth = 50) + 
+  labs(title="cogs distribution",
+       x = "cogs")
+```
+From our histogram cogs was positively skewed.Showing that most of the values were greater than the mean.
+
+```{r}
+# plot the histogram of gross.income
+ggplot(dataset, aes(x = gross.income)) +
+  geom_histogram(fill = "cornflowerblue", 
+                 color = "white",
+                 binwidth = 1) + 
+  labs(title="Distribution of Gross Income",
+       x = "gross income")
+```
+From our histogram gross income was positively skewed.Showing that most of the values were greater than the mean.
+
+```{r}
+# plot the histogram of Rating
+ggplot(dataset, aes(x = Rating)) +
+  geom_histogram(fill = "cyan", 
+                 color = "black",
+                 binwidth = 1) + 
+  labs(title="Distribution of rating",
+       x = "Rating")
+```
+From our histogram of Rating it appeared to have a high count between 6 and 7.
+
+```{r}
+# plot the histogram of Total
+ggplot(dataset, aes(x = Total)) +
+  geom_histogram(fill = "purple", 
+                 color = "white",
+                 binwidth = 100) + 
+  labs(title="Distribution of total",
+       x = "Total")
+```
+From our histogram total distribution is positively skewed.
+
+## Bivariate Analysis
+###Correlation
+```{r}
+#correlation matrix
+correlation = cor(dataset[,c(6,7,8,12,14,15,16)])
+correlation
+```
+
+
+## Part 1.Dimensionality Reduction
+### 1.PCA 
+```{r}
+head(num)
+```
+```{r}
+tail(num)
+```
+
+```{r}
+#Removing the gross.margin percentage column since it has the same value
+df<-num[,-5]
+head(df)
+ 
+```
+
+```{r}
+df.pca <- prcomp(df, center = TRUE, scale. = TRUE)
+summary(df.pca)
+```
+ As a result we obtain 7 principal components, each which explain a percentate of the total variation of the dataset.
+ 
+ PC1 explains 70.31% of the total variance, which means that more information from the dataset  can be dervied from just that one Principal Component.
+ 
+ PC2 explains 14.29% of the variance. 
+
+```{r}
+#checking the structure 
+str(df.pca)
+```
+#Plot
+```{r}
+#Plotting the pca
+library(devtools)
+install_github("vqv/ggbiplot")
+library(ggbiplot)
+ggbiplot(df.pca, obs.scale = 1, var.scale = 1)
+```
+
+
+
+# Conclusion
+ Quantity, Rating, Unit Price and Gross income are the most important features in this analysis. Marketing team when adversting their products should consider quality of the product, unit price, rating of the products and the gross income of their consumers. 
+
+
+# Part 2.Feature Selection
+## i)Filter Methods
+```{r}
+#selecting the numerical variables
+num <- unlist(lapply(dataset, is.numeric))
+col<- colnames(dataset[num])
+col
+```
+
+```{r}
+num <-dataset[col]
+head(num)
+```
+```{r}
+num<-num[-5]
+head(num)
+```
+
+```{r}
+# Installing and loading our caret and corrplot package
+# ---
+# 
+suppressWarnings(
+        suppressMessages(if
+                         (!require(caret, quietly=TRUE))
+                install.packages("caret")))
+library(caret)
+```
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(corrplot, quietly=TRUE))
+                install.packages("corrplot")))
+library(corrplot)
+```
+
+
+```{r}
+# Calculating the correlation matrix
+corr<- cor(num)
+corr
+```
+```{r}
+# Find attributes that are highly correlated
+# ---
+#
+highlyCorr <- findCorrelation(corr, cutoff=0.75)
+highlyCorr
+names(num[,highlyCorr])
+```
+Cogs,Total and Tax are highly correlated
+
+```{r}
+# We can remove the variables with a higher correlation 
+df<-num[-highlyCorr]
+head(df)
+```
+
+After filtering the highly correlated variables we remain with unit price,Quantity,Gross income and Rating as the important features.
+
+```{r}
+#Graphical comparison
+par(mfrow = c(1, 2))
+#Before removing the highly correlated features 
+corrplot(cor(num))
+```
+
+```{r}
+#Afer removing the highly correlated features
+corrplot(cor(df))
+```
+## ii)Wrapper Methods
+```{r}
+# Installing and loading our clustvarsel and mclust package
+suppressWarnings(
+        suppressMessages(if
+                         (!require(clustvarsel, quietly=TRUE))
+                install.packages("clustvarsel")))
+                         
+library(clustvarsel)
+```
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(mclust, quietly=TRUE))
+                install.packages("mclust")))
+library(mclust)
+```
+```{r}
+#Normalize the data
+library(dplyr)
+df.norm<-as.data.frame(scale(num))
+head(df.norm)
+```
+
+
+```{r}
+#Sequential forward greedy search:
+out = clustvarsel(df.norm, G = 1:7)
+out
+```
+
+```{r}
+# Clustering model
+
+Subset1 = df.norm[,out$subset]
+mod = Mclust(Subset1, G = 1:7)
+summary(mod)
+```
+
+```{r}
+plot(mod,c("classification"))
+```
+
+
+## iii)Embedded Methods
+```{r}
+#Installing and loading our wskm and cluster package
+suppressWarnings(
+        suppressMessages(if
+                         (!require(wskm, quietly=TRUE))
+                install.packages("wskm")))
+library(wskm)
+```
+```{r}
+suppressWarnings(
+        suppressMessages(if
+                         (!require(cluster, quietly=TRUE))
+                install.packages("cluster")))
+library("cluster")
+```
+
+```{r}
+#Deploying the function
+set.seed(23)
+model <- ewkm(num, 3, lambda=2, maxiter=1000)
+model
+```
+
+```{r}
+#Clustering
+clusplot(num, model$cluster, color=TRUE, shade=TRUE,
+          lines=1,main='Cluster Analysis for Supermarket sales')
+```
+
+```{r}
+# Weights are calculated for each variable and cluster. 
+# They are a measure of the relative importance of each variable 
+
+round(model$weights*100,2)
+```
+
+# Conclusion
+After conducting filtering the most important features left were price,Quantity,Gross income and Rating.
+
+
+
+
+
+
+
+
+
+
+
+

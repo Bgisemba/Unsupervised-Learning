@@ -1,0 +1,110 @@
+---
+title: "Anomaly Detection"
+author: "Brian Michira"
+date: "9/10/2021"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#Research Question
+To check whether the are anomalies in the given sales data.The objective of the task is fraud detection.
+
+```{r}
+# Load libraries
+suppressWarnings(
+        suppressMessages(if
+                         (!require(tidyverse, quietly=TRUE))
+                install.packages("tidyverse")))
+library(tidyverse)
+suppressWarnings(
+        suppressMessages(if
+                         (!require(anomalize, quietly=TRUE))
+                install.packages("anomalize")))
+library(anomalize)
+suppressWarnings(
+        suppressMessages(if
+                         (!require(tibbletime, quietly=TRUE))
+                install.packages("tibbletime")))
+library(tibbletime)
+suppressWarnings(
+        suppressMessages(if
+                         (!require(dplyr, quietly=TRUE))
+                install.packages("dplyr")))
+library(dplyr)
+```
+
+```{r}
+#Load the data 
+df <-read.csv("http://bit.ly/CarreFourSalesDataset")
+
+```
+```{r}
+#checking the info
+str(df)
+```
+```{r} 
+#changing the data type
+df$Date <- as.Date(df$Date, format ="%m/%d/%Y")
+df$Date <- sort(df$Date, decreasing = FALSE)
+df <- as_tbl_time(df, index = Date)
+df <- df %>%as_period("daily")
+head(df)
+```
+```{r}
+#confirming if the data type has changed
+str(df)
+```
+
+```{r}
+#Check the shape
+dim(df)
+```
+The data has 89 rows and 2 columns.
+
+#Cleaning
+```{r}
+#checking for missing values
+sum(is.na(df))
+```
+No missing values
+```{r}
+#checking for missing values
+duplicated_rows<-df[duplicated(df),]
+duplicated_rows
+```
+There are no duplicated rows.
+```{r}
+#checking for ouliers
+boxplot(df$Sales)
+```
+There are no outliers
+
+# Univariate Analysis
+
+```{r}
+# plot the histogram of Unit.price
+ggplot(df, aes(x = Sales)) +
+  geom_histogram(fill = "cyan", 
+                 color = "black",
+                 binwidth = 100) + 
+  labs(title="Distribution of Sales",
+       x = "Sales")
+```
+Distibution of sales are positively skewed showing that most of the values are greater than the mean.
+
+
+
+```{r}
+# Detecting our anomalies
+
+df %>%
+    time_decompose(Sales) %>%
+    anomalize(remainder) %>%
+    time_recompose() %>%
+    plot_anomalies(time_recomposed = TRUE, ncol = 3, alpha_dots = 0.5)
+```
+There are no anomalies in our dataset.
